@@ -7,7 +7,6 @@ import { createFromReadableStream } from 'next/dist/compiled/react-server-dom-we
 
 import measureWebVitals from './performance-relayer'
 import { HeadManagerContext } from '../shared/lib/head-manager-context'
-import HotReload from './components/react-dev-overlay/hot-reloader-client'
 import { GlobalLayoutRouterContext } from '../shared/lib/app-router-context'
 
 /// <reference types="react-dom/experimental" />
@@ -150,6 +149,10 @@ function ServerRoot({ cacheKey }: { cacheKey: string }): JSX.Element {
   return root
 }
 
+const StrictModeIfEnabled = process.env.__NEXT_STRICT_MODE_APP
+  ? React.StrictMode
+  : React.Fragment
+
 function Root({ children }: React.PropsWithChildren<{}>): React.ReactElement {
   React.useEffect(() => {
     measureWebVitals()
@@ -178,6 +181,9 @@ export function hydrate() {
   if (process.env.NODE_ENV !== 'production') {
     const rootLayoutMissingTagsError = (self as any)
       .__next_root_layout_missing_tags_error
+    const HotReload: typeof import('./components/react-dev-overlay/hot-reloader-client').default =
+      require('./components/react-dev-overlay/hot-reloader-client')
+        .default as typeof import('./components/react-dev-overlay/hot-reloader-client').default
 
     // Don't try to hydrate if root layout is missing required tags, render error instead
     if (rootLayoutMissingTagsError) {
@@ -211,7 +217,7 @@ export function hydrate() {
   }
 
   const reactEl = (
-    <React.StrictMode>
+    <StrictModeIfEnabled>
       <HeadManagerContext.Provider
         value={{
           appDir: true,
@@ -221,7 +227,7 @@ export function hydrate() {
           <RSCComponent />
         </Root>
       </HeadManagerContext.Provider>
-    </React.StrictMode>
+    </StrictModeIfEnabled>
   )
 
   const isError = document.documentElement.id === '__next_error__'

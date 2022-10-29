@@ -96,12 +96,12 @@ export class FlightManifestPlugin {
       PLUGIN_NAME,
       (compilation, { normalModuleFactory }) => {
         compilation.dependencyFactories.set(
-          (webpack as any).dependencies.ModuleDependency,
+          webpack.dependencies.ModuleDependency,
           normalModuleFactory
         )
         compilation.dependencyTemplates.set(
-          (webpack as any).dependencies.ModuleDependency,
-          new (webpack as any).dependencies.NullDependency.Template()
+          webpack.dependencies.ModuleDependency,
+          new webpack.dependencies.NullDependency.Template()
         )
       }
     )
@@ -186,10 +186,8 @@ export class FlightManifestPlugin {
           context,
           mod.resourceResolveData?.path || resource
         )
-        // if (resource.includes('script'))
-        //   console.log('ssrNamedModuleId', ssrNamedModuleId, modId)
+
         if (!ssrNamedModuleId.startsWith('.'))
-          // TODO use getModuleId instead
           ssrNamedModuleId = `./${ssrNamedModuleId.replace(/\\/g, '/')}`
 
         if (isCSSModule) {

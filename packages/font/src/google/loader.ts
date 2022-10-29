@@ -5,6 +5,7 @@ import { calculateSizeAdjustValues } from 'next/dist/server/font-utils'
 import * as Log from 'next/dist/build/output/log'
 // @ts-ignore
 import chalk from 'next/dist/compiled/chalk'
+// @ts-ignore
 import {
   fetchCSSFromGoogleFonts,
   fetchFontFile,
@@ -27,8 +28,8 @@ const downloadGoogleFonts: FontLoader = async ({
 
   const {
     fontFamily,
-    weight,
-    style,
+    weights,
+    styles,
     display,
     preload,
     selectedVariableAxes,
@@ -44,20 +45,31 @@ const downloadGoogleFonts: FontLoader = async ({
         fontFamily
       )} has no selected subsets. Please specify subsets in the function call or in your ${chalk.bold(
         'next.config.js'
-      )}, otherwise no fonts will be preloaded. Read more: https://nextjs.org/docs/api-reference/components/font#nextfontgoogle`
+      )}, otherwise no fonts will be preloaded. Read more: https://nextjs.org/docs/messages/google-fonts-missing-subsets`
     )
   }
 
-  const fontAxes = getFontAxes(fontFamily, weight, style, selectedVariableAxes)
-  const url = getUrl(fontFamily, fontAxes, display)
+  let fontFaceDeclarations = ''
+  for (const weight of weights) {
+    for (const style of styles) {
+      const fontAxes = getFontAxes(
+        fontFamily,
+        weight,
+        style,
+        selectedVariableAxes
+      )
+      const url = getUrl(fontFamily, fontAxes, display)
 
-  let cachedCssRequest = cssCache.get(url)
-  const fontFaceDeclarations =
-    cachedCssRequest ?? (await fetchCSSFromGoogleFonts(url, fontFamily))
-  if (!cachedCssRequest) {
-    cssCache.set(url, fontFaceDeclarations)
-  } else {
-    cssCache.delete(url)
+      let cachedCssRequest = cssCache.get(url)
+      const fontFaceDeclaration =
+        cachedCssRequest ?? (await fetchCSSFromGoogleFonts(url, fontFamily))
+      if (!cachedCssRequest) {
+        cssCache.set(url, fontFaceDeclaration)
+      } else {
+        cssCache.delete(url)
+      }
+      fontFaceDeclarations += `${fontFaceDeclaration}\n`
+    }
   }
 
   // Find font files to download
@@ -144,8 +156,11 @@ const downloadGoogleFonts: FontLoader = async ({
   return {
     css: updatedCssResponse,
     fallbackFonts: fallback,
-    weight: weight === 'variable' ? undefined : weight,
-    style,
+    weight:
+      weights.length === 1 && weights[0] !== 'variable'
+        ? weights[0]
+        : undefined,
+    style: styles.length === 1 ? styles[0] : undefined,
     variable,
     adjustFontFallback: adjustFontFallbackMetrics,
   }

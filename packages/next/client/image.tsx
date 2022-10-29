@@ -13,6 +13,8 @@ import { getImageBlurSvg } from '../shared/lib/image-blur-svg'
 import {
   ImageConfigComplete,
   imageConfigDefault,
+  ImageLoaderProps,
+  ImageLoaderPropsWithConfig,
 } from '../shared/lib/image-config'
 import { ImageConfigContext } from '../shared/lib/image-config-context'
 import { warnOnce } from '../shared/lib/utils'
@@ -33,21 +35,14 @@ if (typeof window === 'undefined') {
 const VALID_LOADING_VALUES = ['lazy', 'eager', undefined] as const
 type LoadingValue = typeof VALID_LOADING_VALUES[number]
 type ImageConfig = ImageConfigComplete & { allSizes: number[] }
-export type ImageLoader = (p: ImageLoaderProps) => string
 
-export type ImageLoaderProps = {
-  src: string
-  width: number
-  quality?: number
-}
+export { ImageLoaderProps }
+export type ImageLoader = (p: ImageLoaderProps) => string
 
 // Do not export - this is an internal type only
 // because `next.config.js` is only meant for the
 // built-in loaders, not for a custom loader() prop.
 type ImageLoaderWithConfig = (p: ImageLoaderPropsWithConfig) => string
-type ImageLoaderPropsWithConfig = ImageLoaderProps & {
-  config: Readonly<ImageConfig>
-}
 
 type PlaceholderValue = 'blur' | 'empty'
 type OnLoad = React.ReactEventHandler<HTMLImageElement> | undefined
@@ -250,7 +245,8 @@ function handleLoading(
   placeholder: PlaceholderValue,
   onLoadRef: React.MutableRefObject<OnLoad | undefined>,
   onLoadingCompleteRef: React.MutableRefObject<OnLoadingComplete | undefined>,
-  setBlurComplete: (b: boolean) => void
+  setBlurComplete: (b: boolean) => void,
+  unoptimized: boolean
 ) {
   if (!img || img['data-loaded-src'] === src) {
     return
@@ -301,8 +297,8 @@ function handleLoading(
     if (process.env.NODE_ENV !== 'production') {
       if (img.getAttribute('data-nimg') === 'fill') {
         if (
-          !img.getAttribute('sizes') ||
-          img.getAttribute('sizes') === '100vw'
+          !unoptimized &&
+          (!img.getAttribute('sizes') || img.getAttribute('sizes') === '100vw')
         ) {
           let widthViewportRatio =
             img.getBoundingClientRect().width / window.innerWidth
@@ -399,24 +395,6 @@ const ImageElement = ({
               if (!srcString) {
                 console.error(`Image is missing required "src" property:`, img)
               }
-              if (
-                img.getAttribute('objectFit') ||
-                img.getAttribute('objectfit')
-              ) {
-                console.error(
-                  `Image has unknown prop "objectFit". Did you mean to use the "style" prop instead?`,
-                  img
-                )
-              }
-              if (
-                img.getAttribute('objectPosition') ||
-                img.getAttribute('objectposition')
-              ) {
-                console.error(
-                  `Image has unknown prop "objectPosition". Did you mean to use the "style" prop instead?`,
-                  img
-                )
-              }
               if (img.getAttribute('alt') === null) {
                 console.error(
                   `Image is missing required "alt" property. Please add Alternative Text to describe the image for screen readers and search engines.`
@@ -430,7 +408,8 @@ const ImageElement = ({
                 placeholder,
                 onLoadRef,
                 onLoadingCompleteRef,
-                setBlurComplete
+                setBlurComplete,
+                unoptimized
               )
             }
           },
@@ -441,6 +420,7 @@ const ImageElement = ({
             onLoadingCompleteRef,
             setBlurComplete,
             onError,
+            unoptimized,
           ]
         )}
         onLoad={(event) => {
@@ -451,7 +431,8 @@ const ImageElement = ({
             placeholder,
             onLoadRef,
             onLoadingCompleteRef,
-            setBlurComplete
+            setBlurComplete,
+            unoptimized
           )
         }}
         onError={(event) => {
@@ -564,6 +545,21 @@ export default function Image({
     }
   }
   src = typeof src === 'string' ? src : staticSrc
+
+  for (const legacyProp of [
+    'layout',
+    'objectFit',
+    'objectPosition',
+    'lazyBoundary',
+    'lazyRoot',
+  ]) {
+    if (legacyProp in rest) {
+      throw new Error(
+        `Image with src "${src}" has legacy prop "${legacyProp}". Did you forget to run the codemod?` +
+          `\nRead more: https://nextjs.org/docs/messages/next-image-upgrade-to-13`
+      )
+    }
+  }
 
   let isLazy =
     !priority && (loading === 'lazy' || typeof loading === 'undefined')
