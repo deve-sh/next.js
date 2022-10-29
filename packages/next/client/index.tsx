@@ -426,7 +426,7 @@ function Head({ callback }: { callback: () => void }): null {
 
 let reactRoot: any = null
 // On initial render a hydrate should always happen
-let shouldHydrate: boolean = true
+let shouldHydrate: boolean = !process.env.__NEXT_RENDER_INSTEAD_OF_HYDRATE
 
 function clearMarks(): void {
   ;['beforeRender', 'afterHydrate', 'afterRender', 'routeChange'].forEach(

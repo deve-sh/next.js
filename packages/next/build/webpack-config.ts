@@ -280,6 +280,9 @@ export function getDefineEnv({
     'process.env.__NEXT_WEB_VITALS_ATTRIBUTION': JSON.stringify(
       config.experimental.webVitalsAttribution
     ),
+    'process.env.__NEXT_RENDER_INSTEAD_OF_HYDRATE': JSON.stringify(
+      config.experimental.renderInsteadOfHydrate
+    ),
     ...(isNodeServer || isEdgeServer
       ? {
           // Fix bad-actors in the npm ecosystem (e.g. `node-formidable`)

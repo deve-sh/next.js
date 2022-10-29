@@ -165,6 +165,9 @@ export interface ExperimentalConfig {
   fontLoaders?: Array<{ loader: string; options?: any }>
 
   webVitalsAttribution?: Array<typeof WEB_VITALS[number]>
+
+  // Use ReactDOM.render instead of ReactDOM.hydrate
+  renderInsteadOfHydrate?: boolean
 }
 
 export type ExportPathMap = {
@@ -581,6 +584,7 @@ export const defaultConfig: NextConfig = {
     enableUndici: false,
     adjustFontFallbacks: false,
     adjustFontFallbacksWithSizeAdjust: false,
+    renderInsteadOfHydrate: false,
   },
 }
 
